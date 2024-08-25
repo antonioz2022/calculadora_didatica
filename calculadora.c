@@ -1,25 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 // ## Autor: Antonio Albuquerque, Turma: 3º B
 // Primeira questão: Data = 24/08/2024, 14:06
 // Segunda questão: Data = 24/08/2024, 16:39
+// Terceira questão: Data = 25/08/2024, 20:23
 
 char *decimalToBinary(int num);
 char *decimalToOctal(int num);
 char *decimalToHexa(int num);
 char *decimalToBCD(int num);
 char *decimalTo2Complement(int num);
+char *decimalToFloatingPoint(double num, int fd);
 void reverseString(char *string);
 
 int main()
 {
-    int numero;
+    double numero;
     int opcao;
 
     printf("Digite um numero: ");
-    scanf("%d", &numero);
+    scanf("%lf", &numero);
 
     printf("----ESCOLHA UMA OPCAO\n");
     printf("1 - Converter para binario.\n");
@@ -27,7 +30,13 @@ int main()
     printf("3 - Converter para Hexadecimal. \n");
     printf("4 - Converter Para BCD.\n");
     printf("5 - Converter para complemento a 2 com 16 bits.\n");
+    printf("6 - Converter para float ou double\n");
     scanf("%d", &opcao);
+
+    if (opcao != 6)
+    {
+        numero = (int)numero;
+    }
 
     if (opcao == 1)
     {
@@ -74,27 +83,142 @@ int main()
             free(numero_2complement);
         }
     }
+    else if (opcao == 6)
+    {
+        char *numero_floatingpoint;
+        int opcao2;
+
+        printf("Deseja converter para float ( 0 ) ou double ( 1 )?\n");
+        printf("Digite 0 para float ou 1 para double\n");
+        scanf("%d", &opcao2);
+
+        if (opcao2 != 1 && opcao2 != 0)
+        {
+            printf("Opcao invalida.");
+            free(numero_floatingpoint);
+            return 0;
+        }
+
+        numero_floatingpoint = decimalToFloatingPoint(numero, opcao2);
+
+        if (numero_floatingpoint != NULL)
+        {
+            if (opcao2 == 0)
+                printf("Numero em float: %s\n", numero_floatingpoint);
+            else
+                printf("Numero em double: %s\n", numero_floatingpoint);
+
+            free(numero_floatingpoint);
+        }
+    }
 
     return 0;
 }
 
-char *decimalToFloatingPoint(float num)
+char *decimalToFloatingPoint(double num, int fd)
 {
     if (num == 0)
         return "0";
 
-    char *binario = (char *)malloc(33 * sizeof(char));
+    int exp = 0;
+    int negative = 0;
+    int int_num = abs((int)num);
+    double decimal_part = fabs(num) - int_num;
 
-    if (binario == NULL)
+    if (fabs(num) == int_num)
+    {
+        printf("Essa opcao nao suporta numeros inteiros (nao contem parte decimal)");
+        exit(0);
+    }
+
+    if (num < 0)
+    {
+        printf("Numero negativo, bit de sinal = 1.\n");
+        negative = 1;
+    }
+    else
+    {
+        printf("Numero positivo, bit de sinal = 0\n");
+    }
+
+    char *binario = (char *)malloc(65 * sizeof(char));
+    char *inteiro = (char *)malloc(65 * sizeof(char));
+    char *exponent = (char *)malloc(65 * sizeof(char));
+    char *decimal = (char *)malloc(65 * sizeof(char));
+
+    if (binario == NULL || inteiro == NULL || decimal == NULL || exponent == NULL)
     {
         printf("malloc error.");
         exit(0);
     }
 
-    memset(binario, '\0', 33);
+    memset(binario, '\0', 65);
+    memset(inteiro, '\0', 65);
+    memset(decimal, '\0', 65);
+    memset(exponent, '\0', 65);
 
+    inteiro = decimalToBinary(int_num);
 
+    if (int_num >= 1)
+    {
+        printf("Parte inteira em binario: %s\n", inteiro);
+        exp = strlen(inteiro) - 1;
+    }
+
+    while (decimal_part != 0)
+    {
+        if (strlen(decimal) > 8)
+        {
+            printf("Aproximando resultado decimal por ser muito longo...");
+            break;
+        }
+        decimal_part *= 2;
+        if (decimal_part < 1)
+        {
+            strcat(decimal, "0");
+            printf("%lf * 2  = %lf, bit = 0\n", decimal_part / 2, decimal_part);
+        }
+        else
+        {
+            strcat(decimal, "1");
+            printf("%lf * 2  = %lf, bit = 1\n", decimal_part / 2, decimal_part);
+            decimal_part -= 1;
+        }
+    }
+
+    printf("Parte decimal em binario: %s\n", decimal);
+
+    printf("Parte da fracao = (inteiro - ultimo bit) + decimal = %s%s\n", inteiro + 1, decimal);
+
+    if (fd == 0)
+    {
+        printf("Expoente = 127 (bias) + %d\n", exp);
+        exponent = decimalToBinary(exp + 127);
+    }
+    else
+    {
+        printf("Expoente = 1023 (bias) + %d\n", exp);
+        exponent = decimalToBinary(exp + 1023);
+    }
+
+    printf("Expoente em binario = %s\n", exponent);
+
+    char neg[4] = "";
+    strcpy(neg, (negative == 1) ? "1" : "0");
+    strcat(binario, neg);
+    strcat(binario, exponent);
+    strcat(binario, inteiro + 1);
+    strcat(binario, decimal);
+
+    printf("Numero em float/double = bit sinal + expoente +  fracao\n");
+
+    free(inteiro);
+    free(decimal);
+    free(exponent);
+
+    return binario;
 }
+
 
 char *decimalTo2Complement(int num)
 {
