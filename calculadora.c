@@ -112,6 +112,10 @@ int main()
         }
     }
 
+    printf("Pressione Enter para sair...");
+    getchar();
+    getchar();
+
     return 0;
 }
 
@@ -218,7 +222,6 @@ char *decimalToFloatingPoint(double num, int fd)
 
     return binario;
 }
-
 
 char *decimalTo2Complement(int num)
 {
